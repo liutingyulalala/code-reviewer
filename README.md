@@ -196,48 +196,143 @@ code-reviewer/
 3. **防火墙配置**: 只允许GitHub的IP地址访问webhook端点
 4. **日志监控**: 监控异常请求和错误日志
 
-## 部署建议
+## 🚀 Railway 部署指南
 
-### 使用PM2部署
+### ⚡ 5分钟快速部署
+
+Railway是最适合此项目的免费云平台，提供简单易用的部署体验。
+
+#### 1. 准备代码仓库
 ```bash
-npm install -g pm2
-pm2 start src/server.js --name "github-webhook"
+# 将代码推送到GitHub
+git add .
+git commit -m "GitHub Webhook服务"
+git push origin main
 ```
 
-### 使用Docker部署
-```dockerfile
-FROM node:16-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY src/ ./src/
-EXPOSE 3000
-CMD ["npm", "start"]
+#### 2. 部署到Railway
+1. 访问 [Railway.app](https://railway.app)
+2. 使用GitHub账号登录
+3. 点击 **"New Project"** → **"Deploy from GitHub repo"**
+4. 选择你的代码仓库
+5. Railway会自动检测Node.js项目并开始部署
+
+#### 3. 配置环境变量
+1. 在Railway项目控制台中，进入 **"Variables"** 选项卡
+2. 添加环境变量：
+   - `GITHUB_WEBHOOK_SECRET`: 设置一个强密钥（推荐使用随机生成的32位字符串）
+   - `NODE_ENV`: `production`
+
+#### 4. 获取服务URL
+部署完成后，Railway会提供一个公网URL，格式如：
+```
+https://your-app-name.railway.app
 ```
 
-## 故障排除
+### 🔗 配置GitHub Webhook
 
-### 常见问题
+在你的GitHub仓库中配置webhook：
+
+1. 进入仓库 **Settings** → **Webhooks**
+2. 点击 **"Add webhook"**
+3. 配置以下信息：
+   - **Payload URL**: `https://your-app-name.railway.app/webhook/github`
+   - **Content type**: `application/json`
+   - **Secret**: 与Railway环境变量中设置的密钥一致
+   - **Events**: 选择 "Pull requests"
+4. 点击 **"Add webhook"**
+
+### ✅ 测试验证
+
+1. **健康检查**: 访问 `https://your-app-name.railway.app/health` 应返回健康状态
+2. **Webhook测试**: GitHub会自动发送ping事件测试连接
+3. **PR测试**: 创建一个测试PR，检查Railway日志是否接收到事件
+
+### 📊 Railway优势
+
+- ✅ **每月500小时免费额度** - 足够小型项目使用
+- ✅ **零配置部署** - 自动检测并部署Node.js项目
+- ✅ **永不休眠** - 不像其他平台有休眠机制
+- ✅ **自动HTTPS** - 自动配置SSL证书
+- ✅ **GitHub集成** - 代码推送自动重新部署
+- ✅ **实时日志** - 在控制台查看服务日志
+- ✅ **自定义域名** - 可绑定自己的域名
+
+### 🔧 Railway故障排除
+
+#### 常见问题解决
+
+1. **部署失败**:
+   - 检查 `package.json` 中的 `start` 脚本
+   - 确保 `src/server.js` 文件存在
+
+2. **环境变量未生效**:
+   - 重新部署服务（Railway会自动重启）
+   - 检查变量名拼写是否正确
+
+3. **webhook接收失败**:
+   - 检查GitHub设置的URL是否正确
+   - 验证Secret密钥是否一致
+   - 查看Railway日志排查错误
+
+4. **超出免费额度**:
+   - 500小时/月约等于每天16.6小时
+   - 可升级到付费计划或优化代码减少资源占用
+
+### 💡 Railway最佳实践
+
+1. **监控使用量**: 定期检查Railway控制台的使用统计
+2. **日志监控**: 使用Railway内置日志功能排查问题
+3. **自动部署**: 推送到main分支会自动触发重新部署
+4. **环境隔离**: 可以为不同分支创建不同的部署环境
+
+## 🔍 故障排除
+
+### 常见问题解决
 
 1. **签名验证失败**
-   - 检查`GITHUB_WEBHOOK_SECRET`是否与GitHub设置一致
-   - 确认webhook的Content-Type为`application/json`
+   - 检查Railway环境变量中的`GITHUB_WEBHOOK_SECRET`是否与GitHub设置一致
+   - 确认GitHub webhook的Content-Type为`application/json`
+   - 重新部署Railway服务以确保环境变量生效
 
 2. **服务无法访问**
-   - 检查防火墙设置
-   - 确认端口配置正确
-   - 验证网络连接
+   - 确认Railway服务已成功部署并运行
+   - 检查Railway提供的URL是否正确
+   - 访问 `/health` 端点测试服务状态
 
 3. **事件不触发**
-   - 检查GitHub webhook配置
-   - 查看webhook发送历史和响应状态
+   - 检查GitHub webhook配置的URL格式
+   - 查看GitHub webhook发送历史和响应状态
+   - 检查Railway服务日志查看错误信息
 
-### 调试模式
+4. **Railway部署问题**
+   - 确保`package.json`包含正确的`start`脚本
+   - 检查代码是否成功推送到GitHub
+   - 查看Railway部署日志排查构建错误
 
-设置环境变量启用详细日志：
-```bash
-NODE_ENV=development npm run dev
-```
+### 🛠️ 调试方法
+
+1. **本地开发测试**:
+   ```bash
+   # 安装依赖
+   npm install
+   
+   # 启动开发模式
+   npm run dev
+   
+   # 运行测试
+   npm test
+   ```
+
+2. **Railway日志监控**:
+   - 在Railway控制台查看实时日志
+   - 关注错误和警告信息
+   - 监控请求响应状态
+
+3. **GitHub Webhook测试**:
+   - 使用GitHub提供的"Recent Deliveries"查看请求历史
+   - 检查响应状态码和错误信息
+   - 重新发送webhook测试连接
 
 ## 贡献
 

@@ -1,7 +1,7 @@
 {
   "name": "code-reviewer",
   "version": "1.0.0",
-  "description": "Node.js service for handling GitHub Pull Request webhooks",
+  "description": "Node.js service for handling GitHub Pull Request webhooks, optimized for Railway deployment",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -14,7 +14,8 @@
     "webhook",
     "pull-request",
     "node.js",
-    "express"
+    "express",
+    "railway"
   ],
   "author": "",
   "license": "MIT",
