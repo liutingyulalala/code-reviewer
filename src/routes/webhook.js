@@ -1,14 +1,14 @@
 // test
 const express = require('express');
 const router = express.Router();
-const { verifyGitHubSignature } = require('../middleware/githubAuth');
+// const { verifyGitHubSignature } = require('../middleware/githubAuth');
 const { handlePullRequestEvent } = require('../handlers/pullRequestHandler');
 
 /**
  * GitHub Webhook端点
  * 接收GitHub发送的webhook事件
  */
-router.post('/github', verifyGitHubSignature, async (req, res) => {
+router.post('/github', async (req, res) => {
   try {
     // 获取事件类型
     const eventType = req.headers['x-github-event'];
