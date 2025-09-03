@@ -186,6 +186,7 @@ async function handlePullRequestReadyForReview(prInfo) {
  */
 async function performCodeReview(prInfo) {
   console.log(`🔍 开始代码审查 PR #${prInfo.number}...`);
+  console.log('test')
   
   // 这里可以添加实际的代码审查逻辑：
   // 1. 获取代码变更diff
