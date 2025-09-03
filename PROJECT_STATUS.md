@@ -29,6 +29,21 @@
 - [x] 仓库信息解析
 - [x] URL 链接提取 (HTML, diff, patch)
 - [x] 时间戳信息
+- [x] 代码差异(diff)获取和解析
+- [x] chunk结构化数据组织
+
+### 🤖 AI代码审查
+- [x] DeepSeek AI集成
+- [x] 代码变更智能分析
+- [x] 架构师角色的专业审查
+- [x] 编码规范检查（camelCase, kebab-case）
+- [x] 性能和安全性分析
+- [x] 结构化审查报告生成
+- [x] 自动PR评论功能
+- [x] 行级代码评论
+- [x] 严重程度分级（high/medium/low）
+- [x] 批量并发审查处理
+- [x] API限流保护
 
 ### 🧪 测试覆盖
 - [x] 完整的单元测试套件
@@ -98,6 +113,11 @@
 - **helmet** - 安全头部
 - **cors** - 跨域资源共享
 - **crypto** - 签名验证
+
+### AI与API集成
+- **axios** - HTTP客户端
+- **diff-parser** - Git差异解析
+- **DeepSeek API** - AI代码审查
 
 ### 开发工具
 - **nodemon** - 开发热重载

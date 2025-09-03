@@ -181,30 +181,231 @@ async function handlePullRequestReadyForReview(prInfo) {
 }
 
 /**
- * 执行代码审查（示例实现）
+ * 执行AI驱动的代码审查
  * @param {Object} prInfo - PR信息对象
  */
 async function performCodeReview(prInfo) {
-  console.log(`🔍 开始代码审查 PR #${prInfo.number}...`);
+  console.log(`🔍 开始AI代码审查 PR #${prInfo.number}...`);
   
-  // 这里可以添加实际的代码审查逻辑：
-  // 1. 获取代码变更diff
-  // 2. 运行静态代码分析
-  // 3. 检查编码规范
-  // 4. 运行自动化测试
-  // 5. 生成审查报告
-  // 6. 添加评论到PR
+  const GitHubService = require('../services/githubService');
+  const DeepSeekService = require('../services/deepSeekService');
   
-  // 示例：简单的文件类型检查
-  if (prInfo.changedFiles > 10) {
-    console.log(`⚠️  注意: PR包含${prInfo.changedFiles}个文件更改，建议分拆`);
+  const githubService = new GitHubService();
+  const deepSeekService = new DeepSeekService();
+  
+  try {
+    // 步骤1: 获取代码变更diff
+    console.log(`📥 获取PR #${prInfo.number}的代码变更...`);
+    const chunks = await githubService.getPullRequestDiffFromUrl(prInfo.diffUrl);
+    
+    if (chunks.length === 0) {
+      console.log(`ℹ️  PR #${prInfo.number}没有代码变更，跳过审查`);
+      return;
+    }
+    
+    console.log(`📊 输出chunks:${JSON.stringify(chunks,null,2)}`);
+    console.log(`📊 发现${chunks.length}个代码变更块，开始AI审查...`);
+    
+    // 步骤2: 使用DeepSeek AI审查代码
+    // const reviewResults = await deepSeekService.reviewMultipleChunks(chunks, {
+    //   title: prInfo.title,
+    //   author: prInfo.author.login,
+    //   sourceBranch: prInfo.sourceBranch,
+    //   targetBranch: prInfo.targetBranch,
+    //   number: prInfo.number
+    // });
+    
+    // 步骤3: 处理审查结果并更新chunks
+    // const reviewedChunks = processReviewResults(chunks, reviewResults);
+    
+    // 步骤4: 生成审查总结
+    // const reviewSummary = deepSeekService.generateReviewSummary(reviewResults, prInfo);
+    
+    // 步骤5: 添加评论到PR
+    // await addReviewCommentsToPR(
+    //   githubService, 
+    //   prInfo, 
+    //   reviewedChunks, 
+    //   reviewSummary,
+    //   reviewResults
+    // );
+    
+    console.log(`✅ AI代码审查完成 PR #${prInfo.number}`);
+    
+    // 统计信息
+    // const successfulReviews = reviewResults.filter(r => r.review.success).length;
+    // const highPriorityIssues = reviewResults.filter(r => 
+    //   r.review.aiComments?.some(c => c.severity === 'high')
+    // ).length;
+    
+    // console.log(`📈 审查统计: ${successfulReviews}/${chunks.length}个代码块已审查，发现${highPriorityIssues}个高优先级问题`);
+    
+  } catch (error) {
+    console.error(`❌ AI代码审查失败 PR #${prInfo.number}:`, error.message);
+    
+    // 发生错误时，添加简单的基础检查评论
+    // await performBasicCodeReview(githubService, prInfo);
   }
+}
+
+/**
+ * 处理AI审查结果，将评论合并到chunks中
+ * @param {Array<Object>} chunks - 原始代码chunks
+ * @param {Array<Object>} reviewResults - AI审查结果
+ * @returns {Array<Object>} 包含AI评论的chunks
+ */
+function processReviewResults(chunks, reviewResults) {
+  const reviewedChunks = chunks.map(chunk => {
+    const correspondingReview = reviewResults.find(r => 
+      r.chunk.newFilePath === chunk.newFilePath &&
+      r.chunk.newStartLine === chunk.newStartLine
+    );
+    
+    if (correspondingReview && correspondingReview.review.success) {
+      return {
+        ...chunk,
+        aiComments: correspondingReview.review.aiComments || [],
+        reviewStatus: 'reviewed',
+        overallRating: correspondingReview.review.overallRating || 'good',
+        suggestions: correspondingReview.review.suggestions || [],
+        risks: correspondingReview.review.risks || []
+      };
+    }
+    
+    return {
+      ...chunk,
+      aiComments: [],
+      reviewStatus: 'failed',
+      overallRating: 'unknown'
+    };
+  });
   
-  if (prInfo.additions + prInfo.deletions > 500) {
-    console.log(`⚠️  注意: PR包含大量代码更改(+${prInfo.additions} -${prInfo.deletions})，请仔细审查`);
+  return reviewedChunks;
+}
+
+/**
+ * 将审查评论添加到PR中
+ * @param {GitHubService} githubService - GitHub服务实例
+ * @param {Object} prInfo - PR信息
+ * @param {Array<Object>} reviewedChunks - 包含AI评论的chunks
+ * @param {string} reviewSummary - 审查总结
+ * @param {Array<Object>} reviewResults - 完整审查结果
+ */
+async function addReviewCommentsToPR(githubService, prInfo, reviewedChunks, reviewSummary, reviewResults) {
+  try {
+    // 添加总结评论
+    await githubService.addPullRequestComment(
+      prInfo.repository.owner,
+      prInfo.repository.name,
+      prInfo.number,
+      reviewSummary
+    );
+    
+    // 添加具体的行级评论（仅针对有重要问题的代码）
+    const highPriorityChunks = reviewedChunks.filter(chunk => 
+      chunk.aiComments.some(comment => comment.severity === 'high' || comment.severity === 'medium')
+    );
+    
+    for (const chunk of highPriorityChunks.slice(0, 5)) { // 限制评论数量，避免刷屏
+      const importantComments = chunk.aiComments.filter(comment => 
+        comment.severity === 'high' || comment.severity === 'medium'
+      );
+      
+      for (const comment of importantComments.slice(0, 2)) { // 每个chunk最多2条评论
+        try {
+          // 获取最新的commit SHA
+          const prDetails = await githubService.getPullRequestDetails(
+            prInfo.repository.owner,
+            prInfo.repository.name,
+            prInfo.number
+          );
+          
+          await githubService.addPullRequestReviewComment(
+            prInfo.repository.owner,
+            prInfo.repository.name,
+            prInfo.number,
+            prDetails.head.sha,
+            comment.path,
+            comment.line,
+            `🤖 **AI代码审查建议**\n\n${comment.content}\n\n*严重程度: ${getSeverityEmoji(comment.severity)} ${comment.severity}*`
+          );
+          
+          // 添加延迟避免API限流
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+        } catch (error) {
+          console.error(`❌ 添加行级评论失败: ${error.message}`);
+        }
+      }
+    }
+    
+  } catch (error) {
+    console.error('❌ 添加审查评论失败:', error.message);
   }
-  
-  console.log(`✅ 代码审查完成 PR #${prInfo.number}`);
+}
+
+/**
+ * 获取严重程度对应的emoji
+ * @param {string} severity - 严重程度
+ * @returns {string} emoji
+ */
+function getSeverityEmoji(severity) {
+  switch (severity) {
+    case 'high': return '🚨';
+    case 'medium': return '⚠️';
+    case 'low': return 'ℹ️';
+    default: return '📝';
+  }
+}
+
+/**
+ * 执行基础代码审查（当AI审查失败时的备用方案）
+ * @param {GitHubService} githubService - GitHub服务实例
+ * @param {Object} prInfo - PR信息对象
+ */
+async function performBasicCodeReview(githubService, prInfo) {
+  try {
+    console.log(`🔄 执行基础代码审查 PR #${prInfo.number}...`);
+    
+    let basicReviewComment = `## 📝 基础代码审查报告\n\n`;
+    
+    // 基础检查
+    if (prInfo.changedFiles > 10) {
+      basicReviewComment += `⚠️ **文件数量**: PR包含${prInfo.changedFiles}个文件更改，建议考虑拆分为更小的PR以便审查。\n\n`;
+    }
+    
+    if (prInfo.additions + prInfo.deletions > 500) {
+      basicReviewComment += `⚠️ **代码量**: PR包含大量代码更改(+${prInfo.additions} -${prInfo.deletions}行)，请确保充分测试。\n\n`;
+    }
+    
+    if (prInfo.additions + prInfo.deletions > 1000) {
+      basicReviewComment += `🚨 **超大变更**: 代码变更量超过1000行，强烈建议拆分PR并进行详细的人工审查。\n\n`;
+    }
+    
+    // 分支命名检查
+    const branchName = prInfo.sourceBranch.toLowerCase();
+    if (!branchName.includes('feature/') && !branchName.includes('fix/') && !branchName.includes('hotfix/')) {
+      basicReviewComment += `💡 **分支命名**: 建议使用规范的分支命名格式 (feature/, fix/, hotfix/)。\n\n`;
+    }
+    
+    basicReviewComment += `### ✅ 检查项目\n`;
+    basicReviewComment += `- [x] 代码量检查\n`;
+    basicReviewComment += `- [x] 文件数量检查\n`;
+    basicReviewComment += `- [x] 分支命名检查\n\n`;
+    basicReviewComment += `*注意: AI代码审查暂时不可用，这是基础检查结果。建议进行人工代码审查。*`;
+    
+    await githubService.addPullRequestComment(
+      prInfo.repository.owner,
+      prInfo.repository.name,
+      prInfo.number,
+      basicReviewComment
+    );
+    
+    console.log(`✅ 基础代码审查完成 PR #${prInfo.number}`);
+    
+  } catch (error) {
+    console.error(`❌ 基础代码审查失败 PR #${prInfo.number}:`, error.message);
+  }
 }
 
 module.exports = {

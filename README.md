@@ -8,6 +8,9 @@
 - 🔐 **安全验证**: 支持GitHub webhook签名验证，确保请求来源可信
 - 📝 **详细解析**: 完整解析PR的body参数和相关信息
 - 🎯 **事件处理**: 支持多种PR事件类型（创建、关闭、重新打开、同步等）
+- 🤖 **AI代码审查**: 集成DeepSeek AI，自动进行代码质量审查
+- 📊 **差异分析**: 获取并解析代码变更diff，按chunk结构组织
+- 💬 **智能评论**: AI生成的审查建议自动添加到PR中
 - ✅ **测试覆盖**: 包含完整的测试用例
 - 📊 **健康检查**: 提供服务状态监控端点
 
@@ -221,6 +224,9 @@ git push origin main
 1. 在Railway项目控制台中，进入 **"Variables"** 选项卡
 2. 添加环境变量：
    - `GITHUB_WEBHOOK_SECRET`: 设置一个强密钥（推荐使用随机生成的32位字符串）
+   - `GITHUB_TOKEN`: GitHub Personal Access Token（需要repo权限）
+   - `DEEPSEEK_API_KEY`: DeepSeek AI的API密钥
+   - `DEEPSEEK_BASE_URL`: `https://api.deepseek.com`（可选，默认值）
    - `NODE_ENV`: `production`
 
 #### 4. 获取服务URL
@@ -247,6 +253,75 @@ https://your-app-name.railway.app
 1. **健康检查**: 访问 `https://your-app-name.railway.app/health` 应返回健康状态
 2. **Webhook测试**: GitHub会自动发送ping事件测试连接
 3. **PR测试**: 创建一个测试PR，检查Railway日志是否接收到事件
+4. **AI审查测试**: 创建包含代码变更的PR，查看是否收到AI生成的审查评论
+
+## 🤖 AI代码审查功能
+
+### 功能介绍
+
+本服务集成了DeepSeek AI，可以自动对Pull Request中的代码变更进行智能审查，提供专业的代码质量建议。
+
+### 审查流程
+
+1. **代码差异获取**: 自动获取PR的完整diff数据
+2. **结构化解析**: 将diff按chunk结构组织，包含文件路径、行号、变更内容
+3. **AI分析**: 调用DeepSeek API，以资深架构师角色审查代码
+4. **智能评论**: 将AI建议自动添加到PR的相应代码行
+
+### 审查标准
+
+AI审查遵循以下标准：
+- **代码规范**: camelCase变量命名、kebab-case文件夹命名
+- **性能优化**: 识别潜在性能问题
+- **安全性**: 检查安全漏洞和风险点
+- **可维护性**: 评估代码可读性和可扩展性
+- **逻辑正确性**: 验证代码逻辑的正确性
+
+### 环境配置
+
+#### 1. 获取GitHub Token
+1. 访问 [GitHub Settings > Developer settings > Personal access tokens](https://github.com/settings/tokens)
+2. 点击 "Generate new token (classic)"
+3. 选择以下权限：
+   - `repo` (Full control of private repositories)
+   - `pull_requests` (Access pull requests)
+4. 复制生成的token，设置为环境变量 `GITHUB_TOKEN`
+
+#### 2. 获取DeepSeek API Key
+1. 访问 [DeepSeek开放平台](https://platform.deepseek.com/)
+2. 注册账号并登录
+3. 在API管理页面创建新的API Key
+4. 复制API Key，设置为环境变量 `DEEPSEEK_API_KEY`
+
+### 审查报告示例
+
+AI审查完成后，PR中会收到类似以下的评论：
+
+```markdown
+## 🤖 AI代码审查报告
+
+### 📊 审查统计
+- **审查文件数**: 3/3
+- **高优先级问题**: 1个
+- **中优先级问题**: 2个
+
+### 📋 主要发现
+
+#### ⚠️ 需要注意的问题
+- **src/utils/helper.js:23**: 建议添加输入参数验证，避免潜在的空指针异常
+
+#### 💡 改进建议
+- 考虑使用ES6的解构赋值语法简化代码
+- 建议添加单元测试覆盖新增功能
+```
+
+### 配置选项
+
+可以通过环境变量调整AI审查行为：
+
+- `DEEPSEEK_BASE_URL`: DeepSeek API地址（默认: https://api.deepseek.com）
+- `AI_REVIEW_ENABLED`: 是否启用AI审查（默认: true）
+- `MAX_REVIEW_COMMENTS`: 最大评论数量（默认: 5）
 
 ### 📊 Railway优势
 
