@@ -6,6 +6,7 @@
  * @param {Function} next - Express next函数
  */
 function errorHandler(err, req, res, next) {
+  console.log('test2')
   console.error('❌ 应用错误:', {
     message: err.message,
     stack: err.stack,
