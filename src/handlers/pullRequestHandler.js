@@ -207,13 +207,13 @@ async function performCodeReview(prInfo) {
     console.log(`📊 发现${chunks.length}个代码变更块，开始AI审查...`);
     
     // 步骤2: 使用DeepSeek AI审查代码
-    // const reviewResults = await deepSeekService.reviewMultipleChunks(chunks, {
-    //   title: prInfo.title,
-    //   author: prInfo.author.login,
-    //   sourceBranch: prInfo.sourceBranch,
-    //   targetBranch: prInfo.targetBranch,
-    //   number: prInfo.number
-    // });
+    const reviewResults = await deepSeekService.reviewMultipleChunks(chunks, {
+      title: prInfo.title,
+      author: prInfo.author.login,
+      sourceBranch: prInfo.sourceBranch,
+      targetBranch: prInfo.targetBranch,
+      number: prInfo.number
+    });
     
     // 步骤3: 处理审查结果并更新chunks
     // const reviewedChunks = processReviewResults(chunks, reviewResults);
