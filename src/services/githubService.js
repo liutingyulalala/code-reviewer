@@ -226,12 +226,19 @@ class GitHubService {
   extractHunkContext(changes) {
     const addedLines = changes.filter(c => c.type === 'add').map(c => c.content);
     const deletedLines = changes.filter(c => c.type === 'del').map(c => c.content);
-    const contextLines = changes.filter(c => c.type === 'normal').map(c => c.content);
+    const normalLines = changes.filter(c => c.type === 'normal').map(c => c.content);
+
+    // contextLines 包含所有类型的变更，保持原始顺序
+    const contextLines = changes.map(c => {
+      const prefix = c.type === 'add' ? '+' : c.type === 'del' ? '-' : ' ';
+      return `${prefix}${c.content}`;
+    });
     
     return {
       addedLines,
       deletedLines,
-      contextLines,
+      normalLines, // 单独保留普通行
+      contextLines, // 包含所有类型变更的完整上下文
       totalChanges: addedLines.length + deletedLines.length,
       isSignificant: addedLines.length + deletedLines.length > 5
     };
